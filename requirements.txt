@@ -2,3 +2,4 @@ telethon
 flask
 python-dotenv
 gunicorn
+waitress
