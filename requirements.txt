@@ -1,0 +1,4 @@
+telethon
+flask
+python-dotenv
+gunicorn
