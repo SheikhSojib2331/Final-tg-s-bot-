@@ -121,6 +121,7 @@ async def broadcast_handler(event):
 
 if __name__ == "__main__":
     if BOT_TOKEN:
-        client.start(bot_token=BOT_TOKEN) #
-        # Render-এর পোর্টের সাথে সামঞ্জস্য রাখা
+        # এটি নিশ্চিত করুন
+        client.start(bot_token=BOT_TOKEN) 
+        print("✅ Bot is online and listening...")
         app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
